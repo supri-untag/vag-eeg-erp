@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vard-eeg-erp"
+version = "0.1.0"
+description = "Desktop workspace for reproducible EEG and ERP analysis"
+requires-python = ">=3.11"
+dependencies = [
+  "PySide6>=6.8,<7", "mne>=1.9,<2", "numpy>=2,<3",
+  "scipy>=1.14,<2", "matplotlib>=3.9,<4", "pyqtgraph>=0.13.7,<0.15", "PyOpenGL>=3.1.7,<4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.11"]
+build = ["pyinstaller>=6"]
+
+[project.scripts]
+vard = "vard_eeg_erp.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
