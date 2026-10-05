@@ -10,8 +10,10 @@ try {
     $BuildPython = Join-Path $ProjectRoot ".venv-build\Scripts\python.exe"
     & $BuildPython -m pip install --upgrade pip
     if ($LASTEXITCODE -ne 0) { throw "Pembaruan pip gagal." }
-    & $BuildPython -m pip install ".[dev,build]"
+    & $BuildPython -m pip install --upgrade ".[dev,build]"
     if ($LASTEXITCODE -ne 0) { throw "Instalasi dependensi gagal." }
+    & $BuildPython -m pip check
+    if ($LASTEXITCODE -ne 0) { throw "Dependensi tidak kompatibel." }
     & $BuildPython -c "import struct; assert struct.calcsize('P') == 8, 'Python x64 diperlukan'"
     if ($LASTEXITCODE -ne 0) { throw "Python harus 64-bit." }
     & $BuildPython -m pytest -q

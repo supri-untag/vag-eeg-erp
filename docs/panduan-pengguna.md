@@ -23,6 +23,14 @@ Panduan ini menjelaskan cara menjalankan aplikasi, melihat EEG, menghasilkan ERP
 
 ## 1. Menjalankan aplikasi
 
+### Windows — pengguna akhir
+
+Minta satu file **`VARD-EEG-ERP-Setup-0.1.1-x64.exe`** dari pengelola aplikasi setelah build Windows lulus pemeriksaan. Buka file tersebut, ikuti langkah instalasi, lalu jalankan **VARD EEG-ERP** dari Start Menu atau shortcut Desktop. Python, MNE, Qt, dan dependensi aplikasi dibundel di dalam installer; tidak perlu memasang paket atau menjalankan Terminal. Instalasi tidak perlu mengunduh dependensi.
+
+Jika versi lama menampilkan `No module named 'mne.utils.config'`, tutup aplikasi lalu pasang installer versi baru. Jika masih gagal, kirim tangkapan pesan error dan nama file installer kepada pengelola. Jangan mencoba memasang MNE sendiri atau memindahkan EXE dari folder instalasinya.
+
+### macOS — menjalankan source
+
 Di Terminal, masuk ke folder proyek lalu jalankan:
 
 ```bash

@@ -2,6 +2,12 @@
 
 Status: konfigurasi build tersedia. File EXE dan installer belum dibuat atau diuji di Windows dari sesi macOS ini. PyInstaller bukan cross-compiler: build Windows dijalankan pada Windows.
 
+## Paket untuk pengguna non-IT
+
+Bagikan hanya **`VARD-EEG-ERP-Setup-0.1.1-x64.exe`** yang dihasilkan build Windows berhasil. Ini satu installer offline yang memuat aplikasi, interpreter Python, MNE, NumPy/SciPy, Qt/PySide6, grafik, serta dependensi yang dibutuhkan. Pengguna cukup klik installer lalu membuka shortcut; langkah build di bawah hanya untuk pengelola aplikasi. Folder internal hasil instalasi tetap diperlukan dan dikelola installer.
+
+Versi 0.1.1 membundel source/data/metadata/binary MNE dengan `collect_all`, memastikan modul wajib termasuk `mne.utils.config` ada dalam hasil analisis PyInstaller, dan menguji EXE dengan PATH sistem Windows tanpa Python/Qt dari lingkungan build. Build berhenti jika pemeriksaan gagal. Implementasi pengumpulan mengikuti [dokumentasi hook PyInstaller](https://pyinstaller.org/en/stable/hooks.html).
+
 ## Build lokal Windows x64
 
 Pasang Python 3.12 x64 beserta Python Launcher dan Inno Setup 6. Buka PowerShell di folder proyek:
@@ -15,7 +21,7 @@ Skrip membuat `.venv-build`, memasang dependensi, menjalankan tes, membundel apl
 Hasil yang diharapkan:
 
 - `dist/VARD-EEG-ERP/VARD-EEG-ERP.exe`: aplikasi beserta dependensi di folder yang sama. Jangan menyalin EXE ini sendirian.
-- `dist/installer/VARD-EEG-ERP-Setup-0.1.0-x64.exe`: installer untuk dibagikan.
+- `dist/installer/VARD-EEG-ERP-Setup-0.1.1-x64.exe`: satu-satunya file yang perlu dibagikan kepada pengguna.
 - `dist/installer/SHA256.txt`: checksum installer.
 - `dist/requirements-windows-built.txt`: snapshot dependensi build Windows; bukan memakai snapshot macOS.
 - `dist/bundle-smoke.json`: hasil pemeriksaan EXE, termasuk traceback bila impor atau pipeline gagal.
@@ -37,7 +43,7 @@ Verifikasi perbaikan pada 5 Oktober 2026: 37 tes source lulus di macOS; smoke te
 
 ## Build melalui GitHub Actions
 
-Setelah proyek berada di repository GitHub, buka **Actions → Windows installer → Run workflow**. Unduh artifact `VARD-EEG-ERP-Windows-x64` setelah workflow berhasil. Workflow dibuat manual agar tidak membangun setiap kali ada perubahan. Belum ada workflow yang dijalankan atau source yang diunggah dari sesi ini.
+Setelah source terbaru berada di repository GitHub, buka **Actions → Windows installer → Run workflow**. Unduh artifact `VARD-EEG-ERP-Setup-Windows-x64` setelah workflow berhasil, ekstrak ZIP artifact tersebut, lalu bagikan file Setup EXE di dalamnya kepada pengguna. Artifact terpisah `VARD-EEG-ERP-build-diagnostics` berisi laporan untuk pengelola. Workflow dibuat manual agar tidak membangun setiap kali ada perubahan. Belum ada workflow yang dijalankan atau source yang diunggah dari sesi ini.
 
 ## Instalasi dan uninstall
 

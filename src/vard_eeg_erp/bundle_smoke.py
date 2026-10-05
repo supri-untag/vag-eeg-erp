@@ -1,6 +1,7 @@
 """Exercise the packaged startup and demo pipeline; report even import failures."""
 
 import json
+import sys
 import traceback
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -10,6 +11,9 @@ def run(report_path: Path) -> int:
     report = {"status": "failed"}
     window = None
     try:
+        import mne.utils.config
+
+        from vard_eeg_erp import __version__
         from vard_eeg_erp.analysis import Settings, analyze, demo_recording
         from vard_eeg_erp.app import MainWindow, create_application
         from vard_eeg_erp.storage import export_csv, load_project, save_project
@@ -34,6 +38,8 @@ def run(report_path: Path) -> int:
             export_csv(folder / "ERP.csv", result, True)
             assert (folder / "ERP.csv").stat().st_size > 100
         report = {"status": "passed", "accepted_trials": result.accepted,
+                  "app_version": __version__, "frozen": bool(getattr(sys, "frozen", False)),
+                  "mne_config": mne.utils.config.__file__,
                   "qt_platform": app.platformName(),
                   "checks": ["startup", "demo", "ERP", "topomap", "project", "CSV"]}
     except Exception:

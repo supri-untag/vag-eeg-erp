@@ -21,9 +21,16 @@ jobs:
         run: ./scripts/build_windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: VARD-EEG-ERP-Windows-x64
+          name: VARD-EEG-ERP-Setup-Windows-x64
+          path: dist/installer/*Setup*-x64.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: VARD-EEG-ERP-build-diagnostics
           path: |
-            dist/installer/*
+            dist/installer/SHA256.txt
             dist/requirements-windows-built.txt
             dist/bundle-smoke.json
-          if-no-files-found: error
+            build/vard/warn-vard.txt
+          if-no-files-found: ignore
