@@ -11,8 +11,12 @@ root = Path(SPECPATH).parent
 analysis = Analysis(
     [str(root / "run.py")],
     pathex=[str(root / "src")],
-    datas=collect_data_files("mne") + [(str(root / "docs"), "docs")],
-    hiddenimports=collect_submodules("pyqtgraph.opengl") + collect_submodules("OpenGL"),
+    # MNE resolves Python modules dynamically through lazy_loader and .pyi stubs.
+    datas=(collect_data_files("mne")
+           + collect_data_files("mne", includes=["**/*.pyi"])
+           + [(str(root / "docs"), "docs")]),
+    hiddenimports=(collect_submodules("mne", filter=lambda name: "tests" not in name.split("."))
+                   + collect_submodules("pyqtgraph.opengl") + collect_submodules("OpenGL")),
     excludes=["PyQt5", "PyQt6", "PySide2"],
     hooksconfig={"matplotlib": {"backends": ["QtAgg", "Agg"]}},
 )

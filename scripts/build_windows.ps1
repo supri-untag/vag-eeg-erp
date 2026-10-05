@@ -18,6 +18,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Tes gagal; build dihentikan." }
     & $BuildPython -m PyInstaller --clean --noconfirm packaging/vard.spec
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller gagal." }
+    & $BuildPython scripts/check_bundle.py dist/VARD-EEG-ERP/VARD-EEG-ERP.exe dist/bundle-smoke.json
+    if ($LASTEXITCODE -ne 0) { throw "Uji executable gagal; installer tidak dibuat." }
     $AppVersion = & $BuildPython -c "import importlib.metadata; print(importlib.metadata.version('vard-eeg-erp'))"
     if ($LASTEXITCODE -ne 0) { throw "Versi aplikasi tidak ditemukan." }
     & $InnoCompiler "/DAppVersion=$AppVersion" packaging/installer.iss

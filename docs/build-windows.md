@@ -10,7 +10,7 @@ Pasang Python 3.12 x64 beserta Python Launcher dan Inno Setup 6. Buka PowerShell
 powershell -ExecutionPolicy Bypass -File scripts/build_windows.ps1
 ```
 
-Skrip membuat `.venv-build`, memasang dependensi, menjalankan tes, membundel aplikasi dengan PyInstaller, lalu membuat installer menggunakan Inno Setup. Gunakan `-InnoCompiler "C:\lokasi\ISCC.exe"` bila compiler berada di lokasi lain.
+Skrip membuat `.venv-build`, memasang dependensi, menjalankan tes, membundel aplikasi dengan PyInstaller, lalu menjalankan EXE hasil build untuk memeriksa startup Qt, demo ERP, topomap, simpan/buka project, dan ekspor CSV. Pemeriksaan berjalan dari folder sementara di luar source dengan timeout 180 detik. Installer Inno Setup hanya dibuat jika EXE keluar dengan kode 0 dan laporan berstatus `passed`. Gunakan `-InnoCompiler "C:\lokasi\ISCC.exe"` bila compiler berada di lokasi lain.
 
 Hasil yang diharapkan:
 
@@ -18,6 +18,22 @@ Hasil yang diharapkan:
 - `dist/installer/VARD-EEG-ERP-Setup-0.1.0-x64.exe`: installer untuk dibagikan.
 - `dist/installer/SHA256.txt`: checksum installer.
 - `dist/requirements-windows-built.txt`: snapshot dependensi build Windows; bukan memakai snapshot macOS.
+- `dist/bundle-smoke.json`: hasil pemeriksaan EXE, termasuk traceback bila impor atau pipeline gagal.
+
+## Perbaikan `No module named 'mne.utils.config'`
+
+Error ini terjadi pada bundel ketika modul Python MNE yang dimuat melalui `lazy_loader` tidak ikut dikemas. Spec kini menyertakan submodul MNE serta file `.pyi` yang dipakai lazy loader, selain data MNE. Menginstal MNE pada komputer pengguna tidak memperbaiki EXE lama: aplikasi memakai dependensi di dalam bundelnya.
+
+Gunakan source yang sudah diperbaiki, tutup aplikasi lama, lalu jalankan kembali perintah build di atas (sudah memakai `--clean`). Setelah build dan uji EXE berhasil, pasang installer baru dari `dist/installer`. Jangan memakai kembali installer lama atau menyalin EXE tanpa folder dependensinya.
+
+Untuk mengulang pemeriksaan bundel atau aplikasi yang sudah terpasang dari komputer build:
+
+```powershell
+.\.venv-build\Scripts\python.exe scripts/check_bundle.py dist/VARD-EEG-ERP/VARD-EEG-ERP.exe dist/bundle-smoke.json
+.\.venv-build\Scripts\python.exe scripts/check_bundle.py "$env:LOCALAPPDATA\Programs\VARD-EEG-ERP\VARD-EEG-ERP.exe" dist/installed-smoke.json
+```
+
+Verifikasi perbaikan pada 5 Oktober 2026: 37 tes source lulus di macOS; smoke test source dengan Qt offscreen lulus untuk startup, demo ERP (12 trial), topomap, project, dan CSV. Executable dan installer Windows yang diperbaiki belum dijalankan dari sesi macOS ini. Smoke test tidak menggantikan pemeriksaan OpenGL/Brain 3D dan instalasi pada Windows bersih.
 
 ## Build melalui GitHub Actions
 

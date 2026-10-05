@@ -25,4 +25,5 @@ jobs:
           path: |
             dist/installer/*
             dist/requirements-windows-built.txt
+            dist/bundle-smoke.json
           if-no-files-found: error
