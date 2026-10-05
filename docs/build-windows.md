@@ -43,6 +43,12 @@ Verifikasi perbaikan pada 5 Oktober 2026: 37 tes source lulus di macOS; smoke te
 
 ## Build melalui GitHub Actions
 
+Jika log menampilkan `KeyError: 'SystemRoot'` dari `scripts/check_bundle.py`,
+PyInstaller sudah selesai tetapi pemeriksaan EXE belum dijalankan. Perbaikan skrip
+menormalisasi nama variabel environment Windows ke huruf besar sebelum membaca
+`SYSTEMROOT` (dengan fallback `WINDIR`). Setelah perubahan di-push, gunakan
+**Run workflow → main**, bukan menjalankan ulang run dengan commit lama.
+
 Setelah source terbaru berada di repository GitHub, buka **Actions → Windows installer → Run workflow**. Unduh artifact `VARD-EEG-ERP-Setup-Windows-x64` setelah workflow berhasil, ekstrak ZIP artifact tersebut, lalu bagikan file Setup EXE di dalamnya kepada pengguna. Artifact terpisah `VARD-EEG-ERP-build-diagnostics` berisi laporan untuk pengelola. Workflow dibuat manual agar tidak membangun setiap kali ada perubahan. Belum ada workflow yang dijalankan atau source yang diunggah dari sesi ini.
 
 ## Instalasi dan uninstall
