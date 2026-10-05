@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from vard_eeg_erp import __version__
 from vard_eeg_erp.analysis import Settings, analyze, demo_recording, read_recording
 from vard_eeg_erp.brain3d import Brain3D
 from vard_eeg_erp.presentation import Presentation
@@ -131,7 +132,7 @@ class MainWindow(QMainWindow):
         side.addWidget(self.save_button)
         side.addStretch()
         footer = label(
-            "VARD Studio  0.1\nLocal research workspace\n\nVARS scoring: eksperimental", "muted"
+            f"VARD Studio  {__version__}\nLocal research workspace\n\nVARS scoring: eksperimental", "muted"
         )
         footer.setWordWrap(True)
         side.addWidget(footer)
@@ -152,7 +153,10 @@ class MainWindow(QMainWindow):
         self.demo_button = button("Muat demo", self.load_demo)
         self.import_button = button("＋  Import EEG", self.import_file, True)
         header.addWidget(self.demo_button)
+        header.addWidget(button("Import folder", self.import_folder))
+        header.addWidget(button("Katalog folder", self.show_folder_catalog))
         header.addWidget(self.import_button)
+        header.addWidget(button("Posisi / kategori", self.configure_import))
         body.addLayout(header)
 
         banner = QHBoxLayout()
@@ -477,6 +481,46 @@ class MainWindow(QMainWindow):
 
         self.start_job(work, complete, "Menyiapkan demo sintetis dan ERP…")
 
+    def configure_import(self):
+        if self.recording is None or self.job is not None or self.recording.demo:
+            return
+        from vard_eeg_erp.import_mapping import apply_setup, ced_setup, read_groups
+
+        choice = QMessageBox.question(
+            self, "Pemetaan data", "Impor posisi CED? Pilih No untuk CSV kategori trigger.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No |
+            QMessageBox.StandardButton.Cancel)
+        if choice == QMessageBox.StandardButton.Cancel:
+            return
+        setup = dict(self.recording.import_setup)
+        try:
+            if choice == QMessageBox.StandardButton.Yes:
+                ced, _ = QFileDialog.getOpenFileName(self, "CED dengan X Y Z", "", "CED (*.ced)")
+                if not ced:
+                    return
+                mapping, _ = QFileDialog.getOpenFileName(
+                    self, "CSV OriginalLabel, ActiveElectrode, UsedForTopoplot", "", "CSV (*.csv)")
+                if not mapping:
+                    return
+                setup.update(ced_setup(ced, mapping))
+                message = (f"Pakai {len(setup['positions'])} channel EEG; "
+                           f"keluarkan {len(setup['excluded'])} channel dari analisis EEG dan reference. "
+                           "Koordinat berupa arah pada kepala ilustratif radius 95 mm. Lanjutkan?")
+            else:
+                path, _ = QFileDialog.getOpenFileName(
+                    self, "CSV event_code, category", "", "CSV (*.csv)")
+                if not path:
+                    return
+                setup['groups'] = read_groups(path)
+                message = f"Kelompokkan trigger ke {len(set(setup['groups'].values()))} kategori?"
+            if QMessageBox.question(self, "Terapkan pemetaan", message) != QMessageBox.StandardButton.Yes:
+                return
+            source = self.recording.source
+            self.start_job(lambda: apply_setup(read_recording(source), setup),
+                           self.install_recording, "Menerapkan pemetaan; hasil ERP perlu dihitung ulang…")
+        except (ValueError, KeyError, OSError) as error:
+            self.show_error(str(error))
+
     def import_file(self):
         if not self.confirm_replace():
             return
@@ -487,6 +531,37 @@ class MainWindow(QMainWindow):
                 self.install_recording,
                 "Membaca metadata dan event EEG…",
             )
+
+    def show_folder_catalog(self):
+        if not hasattr(self, "folder_catalog"):
+            from vard_eeg_erp.folder_catalog_ui import FolderCatalog
+
+            self.folder_catalog = FolderCatalog(self)
+            self.folder_catalog.open_requested.connect(self.open_catalog_recording)
+        self.folder_catalog.show()
+        self.folder_catalog.raise_()
+
+    def import_folder(self):
+        if self.job is not None:
+            return
+        folder = QFileDialog.getExistingDirectory(self, "Pilih folder subjek / rekaman")
+        if not folder:
+            return
+        from vard_eeg_erp.folder_catalog import scan_folder
+
+        def complete(rows):
+            self.show_folder_catalog()
+            self.folder_catalog.populate(folder, rows)
+            self.status.setText(f"Pemindaian selesai: {len(rows)} file ditemukan.")
+
+        self.start_job(lambda: scan_folder(folder), complete, "Memindai folder dan memeriksa EEG…")
+
+    def open_catalog_recording(self, path):
+        if not self.confirm_replace():
+            return
+        self.folder_catalog.hide()
+        self.start_job(lambda: read_recording(path), self.install_recording,
+                       "Membuka rekaman dari katalog folder…")
 
     def install_recording(self, recording):
         self.recording = recording
@@ -823,6 +898,10 @@ class MainWindow(QMainWindow):
         def work():
             payload = load_project(Path(path))
             recording = demo_recording() if payload["demo"] else read_recording(payload["source"])
+            if payload.get("import_setup"):
+                from vard_eeg_erp.import_mapping import apply_setup
+
+                recording = apply_setup(recording, payload["import_setup"])
             settings = Settings(**payload["settings"])
             result = (
                 analyze(recording, settings, payload["event"]) if payload["has_result"] else None

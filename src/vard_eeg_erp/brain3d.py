@@ -10,6 +10,15 @@ from PySide6.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QSlider, QVBoxL
 from vard_eeg_erp.widgets import button, label
 
 
+def activity_colors(values, limit):
+    """Signed scalp values control a fixed particle field; zero has no glow."""
+    values = np.asarray(values)
+    colors = np.empty((len(values), 4), dtype=np.float32)
+    colors[:, :3] = np.where((values >= 0)[:, None], [.12, .9, 1.], [.72, .35, 1.])
+    colors[:, 3] = np.clip(np.abs(values) / max(limit, .1), 0, 1) ** .65
+    return colors
+
+
 def brain_mesh(rows=64, columns=96):
     """Closed parametric ellipsoid with illustrative folds and midline groove."""
     theta = np.linspace(0.001, np.pi - 0.001, rows)
@@ -60,6 +69,17 @@ class Brain3D(QWidget):
         self.weights = None
         self.sample = 0
         self.vertices, self.faces = brain_mesh()
+        self.particles = None
+        self.fibers = None
+        rng = np.random.default_rng(42)
+        self.particle_indices = rng.integers(0, len(self.vertices), 9000)
+        self.particle_positions = (
+            self.vertices[self.particle_indices] * rng.uniform(.91, 1.015, (9000, 1))
+        ).astype(np.float32)
+        self.fiber_positions = np.stack([
+            self.particle_positions,
+            self.particle_positions + rng.normal(0, .013, (9000, 3)),
+        ], axis=1).reshape(-1, 3).astype(np.float32)
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.setInterval(16)
@@ -88,6 +108,10 @@ class Brain3D(QWidget):
             controls.addWidget(widget)
         controls.addStretch()
         layout.addLayout(controls)
+        self.style = QComboBox()
+        self.style.addItems(["Aktivitas cyan–ungu · ilustratif", "Peta potensial biru–merah"])
+        self.style.currentIndexChanged.connect(self.refresh_style)
+        layout.addWidget(self.style)
         self.title = label("Generate ERP untuk melihat aktivitas 3D", "section")
         layout.addWidget(self.title)
         self.scene_layout = QVBoxLayout()
@@ -148,7 +172,7 @@ class Brain3D(QWidget):
             )
 
             self.view = gl.GLViewWidget()
-            self.view.setBackgroundColor("#F5F7FA")
+            self.view.setBackgroundColor("#272B32")
             self.scene_layout.addWidget(self.view, 1)
             self.placeholder.hide()
             self.mesh = gl.GLMeshItem(
@@ -160,6 +184,17 @@ class Brain3D(QWidget):
                 color=(0.85, 0.87, 0.91, 1),
             )
             self.view.addItem(self.mesh)
+            self.mesh.setGLOptions("translucent")
+            self.particles = gl.GLScatterPlotItem(
+                pos=self.particle_positions, size=3, color=(0, 0, 0, 0),
+                pxMode=True, glOptions="additive",
+            )
+            self.fibers = gl.GLLinePlotItem(
+                pos=self.fiber_positions, color=(0, 0, 0, 0), width=1,
+                mode="lines", glOptions="additive",
+            )
+            self.view.addItem(self.fibers)
+            self.view.addItem(self.particles)
             self.points = gl.GLScatterPlotItem(
                 pos=np.empty((0, 3)), size=6, color=(0.15, 0.18, 0.3, 1), glOptions="opaque"
             )
@@ -176,7 +211,7 @@ class Brain3D(QWidget):
             ]:
                 self.view.addItem(
                     gl.GLTextItem(
-                        pos=position, text=text, color=(65, 80, 110, 255), glOptions="opaque"
+                        pos=position, text=text, color=(190, 200, 215, 255), glOptions="opaque"
                     )
                 )
             QTimer.singleShot(2500, self.check_context)
@@ -207,6 +242,10 @@ class Brain3D(QWidget):
         if self.view:
             self.points.setVisible(checked)
 
+    def refresh_style(self):
+        if self.result is not None:
+            self.set_sample(self.sample)
+
     def clear(self):
         self.pause()
         self.result = None
@@ -218,6 +257,8 @@ class Brain3D(QWidget):
             self.mesh.setColor((0.85, 0.87, 0.91, 1))
             self.mesh.setMeshData(vertexes=self.vertices, faces=self.faces)
             self.points.setData(pos=np.empty((0, 3)))
+            self.particles.setData(color=(0, 0, 0, 0))
+            self.fibers.setData(color=(0, 0, 0, 0))
 
     def set_result(self, result):
         self.clear()
@@ -262,6 +303,21 @@ class Brain3D(QWidget):
             values = self.weights @ (self.result.evoked.data[:, self.sample] * 1e6)
             colors = colormaps["RdBu_r"](np.clip((values / self.limit + 1) / 2, 0, 1)).astype(
                 np.float32
+            )
+            glowing = self.style.currentIndex() == 0
+            self.particles.setVisible(glowing)
+            self.fibers.setVisible(glowing)
+            if glowing:
+                colors[:] = (.48, .52, .58, .18)
+                particle_colors = activity_colors(values[self.particle_indices], self.limit)
+                self.particles.setData(color=particle_colors)
+                line_colors = np.repeat(particle_colors, 2, axis=0)
+                line_colors[:, 3] *= .35
+                self.fibers.setData(color=line_colors)
+            self.legend.setText(
+                ("Cyan = positif · ungu = negatif · terang = |potensial|; partikel ilustratif"
+                 if glowing else "Biru = negatif · merah = positif")
+                + f" · skala tetap ±{self.limit:.2f} µV · bukan kelas AATR"
             )
             self.mesh.opts["meshdata"].setVertexColors(colors)
             self.mesh.meshDataChanged()

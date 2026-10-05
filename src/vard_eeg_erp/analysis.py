@@ -7,6 +7,8 @@ from pathlib import Path
 import mne
 import numpy as np
 
+from vard_eeg_erp import __version__
+
 CHANNELS = [
     "Fp1",
     "Fp2",
@@ -87,6 +89,7 @@ class Recording:
     event_id: dict[str, int]
     source: str
     demo: bool = False
+    import_setup: dict = field(default_factory=dict)
     preview_times: np.ndarray = field(default_factory=lambda: np.empty(0))
     preview_data: np.ndarray = field(default_factory=lambda: np.empty((0, 0)))
     preview_names: list[str] = field(default_factory=list)
@@ -192,7 +195,7 @@ def analyze(recording: Recording, settings: Settings, event_name: str) -> Result
     if event_name not in recording.event_id:
         raise ValueError("Pilih event yang tersedia sebelum menjalankan analisis.")
     raw = recording.raw.copy().load_data().pick("eeg")
-    if settings.standard_montage:
+    if settings.standard_montage and not recording.import_setup.get("positions"):
         raw.set_montage(
             standard_montage_name(), match_case=False, on_missing="raise", verbose=False
         )
@@ -221,6 +224,7 @@ def analyze(recording: Recording, settings: Settings, event_name: str) -> Result
         "time_utc": datetime.now(timezone.utc).isoformat(),
         "source": recording.source,
         "demo": recording.demo,
+        "import_setup": recording.import_setup,
         "event": event_name,
         "event_code": code,
         "parameters": asdict(settings),
@@ -233,6 +237,6 @@ def analyze(recording: Recording, settings: Settings, event_name: str) -> Result
         "drop_log": [list(reason) for reason in epochs.drop_log],
         "mne_version": mne.__version__,
         "numpy_version": np.__version__,
-        "app_version": "0.1.0",
+        "app_version": __version__,
     }
     return Result(evoked, len(epochs), len(events) - len(epochs), event_name, settings, history)

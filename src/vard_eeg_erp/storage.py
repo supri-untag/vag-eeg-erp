@@ -42,6 +42,7 @@ def save_project(
             "schema_version": 1,
             "source": source,
             "demo": recording.demo,
+            "import_setup": recording.import_setup,
             "settings": asdict(settings),
             "event": event,
             "history": history,

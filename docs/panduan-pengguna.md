@@ -25,7 +25,7 @@ Panduan ini menjelaskan cara menjalankan aplikasi, melihat EEG, menghasilkan ERP
 
 ### Windows — pengguna akhir
 
-Minta satu file **`VARD-EEG-ERP-Setup-0.1.1-x64.exe`** dari pengelola aplikasi setelah build Windows lulus pemeriksaan. Buka file tersebut, ikuti langkah instalasi, lalu jalankan **VARD EEG-ERP** dari Start Menu atau shortcut Desktop. Python, MNE, Qt, dan dependensi aplikasi dibundel di dalam installer; tidak perlu memasang paket atau menjalankan Terminal. Instalasi tidak perlu mengunduh dependensi.
+Minta satu file **`VARD-EEG-ERP-Setup-0.2.0-x64.exe`** dari pengelola aplikasi setelah build Windows lulus pemeriksaan. Buka file tersebut, ikuti langkah instalasi, lalu jalankan **VARD EEG-ERP** dari Start Menu atau shortcut Desktop. Python, MNE, Qt, dan dependensi aplikasi dibundel di dalam installer; tidak perlu memasang paket atau menjalankan Terminal. Instalasi tidak perlu mengunduh dependensi.
 
 Jika versi lama menampilkan `No module named 'mne.utils.config'`, tutup aplikasi lalu pasang installer versi baru. Jika masih gagal, kirim tangkapan pesan error dan nama file installer kepada pengelola. Jangan mencoba memasang MNE sendiri atau memindahkan EXE dari folder instalasinya.
 
@@ -285,3 +285,45 @@ Warna berubah mengikuti potensial channel dalam µV, dengan skala tetap sepanjan
 ### Batas zoom grafik
 
 Grafik Overview & ERP dan EEG Recording membatasi zoom out pada seluruh rentang data yang ditampilkan, dengan margin 2% pada waktu dan 10% pada amplitudo. Zoom in tetap tersedia; pergeseran grafik dibatasi agar tidak keluar jauh dari data. Batas diperbarui saat rekaman atau channel ERP berubah.
+
+## Import folder subjek
+
+Klik **Import folder** pada header aplikasi, lalu pilih folder subjek. Pemindaian
+mencakup subfolder dan berjalan pada worker agar antarmuka tetap merespons.
+Katalog menampilkan file, status, jumlah channel EEG, sampling rate, durasi,
+jumlah event, dan catatan pemeriksaan. File BDF/EDF diperiksa; SET/FDT, CED,
+MAT/FIG, CSV, gambar, serta script dicatat sebagai pendukung. Script tidak dijalankan.
+
+Pilih BDF/EDF yang terbaca, lalu klik **Buka rekaman terpilih** atau klik dua kali.
+Rekaman masuk ke workspace analisis biasa. Buka kembali daftar dengan **Katalog
+folder**. Katalog bertahan selama aplikasi terbuka; scan folder baru mengganti
+katalog sebelumnya. Data tidak disalin, digabung, dipindahkan, atau diubah.
+
+Status **Perlu tinjau** tetap dapat dibuka, tetapi periksa catatannya: event kosong,
+satu trial per kode, posisi elektroda tidak lengkap, channel Add_lead, atau marker
+PROVISIONAL. Pemeriksaan membaca header, preview 10 detik dan trigger; belum
+memastikan kualitas seluruh sinyal atau kebenaran onset stimulus. File rusak
+ditandai sendiri tanpa menghentikan pemeriksaan file lain. Folder kosong
+menghasilkan katalog kosong. Pemindaian belum menyediakan pembatalan atau
+persistensi katalog ke project. Tunggu scan selesai sebelum membuka rekaman.
+
+## Pasangkan posisi dan kelompok trigger
+
+Setelah membuka BDF, klik **Posisi / kategori**. Pilih **Yes** untuk CED XYZ,
+kemudian CSV dengan kolom `OriginalLabel,ActiveElectrode,UsedForTopoplot`.
+Mapping harus mencakup semua channel EEG. YES memakai posisi elektroda pada CED;
+NO mengubah channel menjadi misc sehingga tidak ikut analisis atau average reference.
+Konfirmasi jumlah channel sebelum menerapkan. Model posisi memakai arah XYZ EEGLAB
+(X depan, Y kiri) yang diubah ke koordinat kepala MNE dengan radius ilustratif 95 mm;
+bukan koordinat digitizer individual. Untuk SUBJEK 101 gunakan
+`location_10-20_REFERENCE_FULL_XYZ.ced` dan CSV mapping di
+`TOPOPLOT_3_WINDOWS_CED_REFERENCE`. Hasilnya 16 EEG dengan posisi, 16 misc.
+
+Pilih **No** untuk mengimpor CSV kategori dengan kolom `event_code,category`.
+Semua kode trigger harus dicantumkan satu kali. Isi kategori sesuai codebook
+penelitian, bukan tebakan. Trigger dengan kategori sama digabung untuk averaging.
+Mapping waktu tidak diubah. Marker PROVISIONAL tetap memerlukan verifikasi onset.
+
+Setelah pemetaan, Generate ERP kembali lalu simpan project. Koordinat, channel
+yang dikeluarkan, dan pemetaan kategori tersimpan dalam manifest project. BDF
+asli tidak diubah; file BDF tetap diperlukan untuk membuka ulang project.
