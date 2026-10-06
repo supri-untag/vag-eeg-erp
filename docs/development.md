@@ -143,3 +143,11 @@ Laporan ada di `artifacts/animation-performance.json`; screenshot di `artifacts/
 Referensi: [PyQtGraph GLMeshItem](https://pyqtgraph.readthedocs.io/en/latest/api_reference/3dgraphics/glmeshitem.html).
 
 Kontrol ERP Presentation mengikuti Brain 3D: Putar/Pause, Stop, dan kecepatan 0,1×–1×. Timeline memakai milidetik presentasi (1,5 detik/event pada 1×), berbasis elapsed clock. Pause mempertahankan fade; seek dan perubahan kecepatan mempertahankan posisi tanpa menghitung ulang topomap.
+
+## Pembanding alur EEG
+
+Repository pembanding yang ditinjau: https://github.com/alesuarez92/NeuronalDataAnalyzerLab
+(README, 5 Oktober 2026). Proyek tersebut memisahkan input EEG, posisi elektroda,
+filter/reference, trial rejection, ERP dan pelaporan. VARD menggunakan alur yang
+serupa untuk mengarahkan impor SET/FDT, validasi parameter, dan menu AATR mandiri;
+tidak menyalin kode atau mengklaim kesetaraan metode/hasil dengan aplikasi tersebut.

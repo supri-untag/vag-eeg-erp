@@ -79,3 +79,15 @@ jenis FIG MATLAB. Tidak ada script atau callback MATLAB yang dijalankan.
 Impor FIG tidak menghitung normalisasi, mengubah kalkulator AATR, atau mengaitkan
 kurva penelitian dengan rekaman EEG aktif. File MAT ringkasan saja tidak memuat
 kurva waktu yang diperlukan; buka FIG untuk dashboard lengkap.
+
+Pada mode cyan–ungu, **Bentuk otak transparan** menampilkan selubung ilustratif
+berlipat. Slider **Opasitas bentuk** mengatur keterlihatan selubung (5–65%).
+**Elektroda** menampilkan titik kuning dan **Nama elektroda** menampilkan label
+channel di sekitar kepala. Partikel/serabut adalah ilustrasi potensial scalp,
+bukan sel saraf terukur. Kontrol selubung berlaku pada mode cyan–ungu.
+
+Optimasi Brain 3D: target playback 30 FPS dengan waktu berbasis elapsed time,
+3.000 partikel, cache sampel/style untuk menghindari render ganda, dan selubung
+statis tidak dibangun ulang setiap frame. Nama elektroda nonaktif secara default;
+aktifkan bila diperlukan. Jumlah partikel hanya detail ilustrasi, bukan jumlah
+channel atau neuron. Data EEG serta skala amplitudo tetap sama.

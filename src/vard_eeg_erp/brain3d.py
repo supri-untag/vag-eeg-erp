@@ -71,18 +71,21 @@ class Brain3D(QWidget):
         self.vertices, self.faces = brain_mesh()
         self.particles = None
         self.fibers = None
+        self.electrode_labels = []
+        self._render_key = None
+        self._shell_opacity = None
         rng = np.random.default_rng(42)
-        self.particle_indices = rng.integers(0, len(self.vertices), 9000)
+        self.particle_indices = rng.integers(0, len(self.vertices), 3000)
         self.particle_positions = (
-            self.vertices[self.particle_indices] * rng.uniform(.91, 1.015, (9000, 1))
+            self.vertices[self.particle_indices] * rng.uniform(.91, 1.015, (3000, 1))
         ).astype(np.float32)
         self.fiber_positions = np.stack([
             self.particle_positions,
-            self.particle_positions + rng.normal(0, .013, (9000, 3)),
+            self.particle_positions + rng.normal(0, .013, (3000, 3)),
         ], axis=1).reshape(-1, 3).astype(np.float32)
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
-        self.timer.setInterval(16)
+        self.timer.setInterval(33)
         self.timer.timeout.connect(self.tick)
         self.last_tick = None
         layout = QVBoxLayout(self)
@@ -112,6 +115,22 @@ class Brain3D(QWidget):
         self.style.addItems(["Aktivitas cyan–ungu · ilustratif", "Peta potensial biru–merah"])
         self.style.currentIndexChanged.connect(self.refresh_style)
         layout.addWidget(self.style)
+        anatomy_controls = QHBoxLayout()
+        self.shell = QCheckBox("Bentuk otak transparan")
+        self.shell.setChecked(True)
+        self.shell.toggled.connect(self.refresh_style)
+        anatomy_controls.addWidget(self.shell)
+        anatomy_controls.addWidget(label("Opasitas bentuk"))
+        self.opacity = QSlider(Qt.Orientation.Horizontal)
+        self.opacity.setRange(5, 65)
+        self.opacity.setValue(28)
+        self.opacity.valueChanged.connect(self.refresh_style)
+        anatomy_controls.addWidget(self.opacity)
+        self.channel_labels = QCheckBox("Nama elektroda")
+        self.channel_labels.setChecked(False)
+        self.channel_labels.toggled.connect(self.refresh_style)
+        anatomy_controls.addWidget(self.channel_labels)
+        layout.addLayout(anatomy_controls)
         self.title = label("Generate ERP untuk melihat aktivitas 3D", "section")
         layout.addWidget(self.title)
         self.scene_layout = QVBoxLayout()
@@ -124,6 +143,8 @@ class Brain3D(QWidget):
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.valueChanged.connect(self.seek)
         layout.addWidget(self.slider)
+        self.timeline_label = label("Timeline EEG · — ms", "muted")
+        layout.addWidget(self.timeline_label)
         self.legend = label("Biru = negatif · putih = nol · merah = positif (µV)", "muted")
         layout.addWidget(self.legend)
         note = label(
@@ -185,6 +206,9 @@ class Brain3D(QWidget):
             )
             self.view.addItem(self.mesh)
             self.mesh.setGLOptions("translucent")
+            # A transparent shell must not occlude activity on its far side.
+            self.mesh.setGLOptions({0x0B71: False, 0x0BE2: True,
+                                   "glBlendFunc": (0x0302, 0x0303)})
             self.particles = gl.GLScatterPlotItem(
                 pos=self.particle_positions, size=3, color=(0, 0, 0, 0),
                 pxMode=True, glOptions="additive",
@@ -241,19 +265,29 @@ class Brain3D(QWidget):
     def show_electrodes(self, checked):
         if self.view:
             self.points.setVisible(checked)
+            for item in self.electrode_labels:
+                item.setVisible(checked and self.channel_labels.isChecked())
 
     def refresh_style(self):
+        if self.view:
+            self.show_electrodes(self.electrodes.isChecked())
         if self.result is not None:
             self.set_sample(self.sample)
 
     def clear(self):
         self.pause()
         self.result = None
+        self._render_key = None
+        self._shell_opacity = None
         self.weights = None
+        self.timeline_label.setText("Timeline EEG · — ms")
         self.title.setText("Generate ERP untuk melihat aktivitas 3D")
         for widget in [self.play, self.stop, self.slider]:
             widget.setEnabled(False)
         if self.mesh:
+            for item in self.electrode_labels:
+                self.view.removeItem(item)
+            self.electrode_labels.clear()
             self.mesh.setColor((0.85, 0.87, 0.91, 1))
             self.mesh.setMeshData(vertexes=self.vertices, faces=self.faces)
             self.points.setData(pos=np.empty((0, 3)))
@@ -281,11 +315,21 @@ class Brain3D(QWidget):
 
     def activate(self):
         if self.ensure_view() and self.result:
+            import pyqtgraph.opengl as gl
+
+            for name, direction in zip(
+                self.result.evoked.ch_names if not self.electrode_labels else [], self.directions
+            ):
+                item = gl.GLTextItem(pos=direction * np.array([1.02, 1.32, 1.02]),
+                                     text=name, color=(225, 238, 255, 255))
+                self.view.addItem(item)
+                self.electrode_labels.append(item)
             self.points.setData(
                 pos=self.directions * np.array([0.91, 1.2, 0.92]),
                 size=7,
-                color=(0.15, 0.18, 0.3, 1),
+                color=(1., .8, .25, 1),
             )
+            self.show_electrodes(self.electrodes.isChecked())
             self.set_sample(self.sample)
 
     def set_sample(self, sample):
@@ -295,32 +339,49 @@ class Brain3D(QWidget):
         self.slider.blockSignals(True)
         self.slider.setValue(self.sample)
         self.slider.blockSignals(False)
+        times_ms = self.result.evoked.times * 1000
+        self.timeline_label.setText(
+            f"Timeline EEG · {times_ms[0]:.2f} ms → {times_ms[-1]:.2f} ms"
+            f"   |   Posisi: {times_ms[self.sample]:.2f} ms"
+        )
+        self.slider.setToolTip(f"Waktu EEG: {times_ms[self.sample]:.2f} ms")
         prefix = "DEMO SINTETIS · " if self.result.history.get("demo") else ""
         self.title.setText(
             f"{prefix}{self.result.event_name} · {self.result.evoked.times[self.sample] * 1000:.2f} ms · potensial scalp pada bentuk ilustratif"
         )
         if self.mesh and self.isVisible():
+            key = (self.sample, self.style.currentIndex(), self.opacity.value(), self.shell.isChecked())
+            if key == self._render_key:
+                return
+            self._render_key = key
             values = self.weights @ (self.result.evoked.data[:, self.sample] * 1e6)
-            colors = colormaps["RdBu_r"](np.clip((values / self.limit + 1) / 2, 0, 1)).astype(
-                np.float32
-            )
             glowing = self.style.currentIndex() == 0
             self.particles.setVisible(glowing)
             self.fibers.setVisible(glowing)
             if glowing:
-                colors[:] = (.48, .52, .58, .18)
+                opacity = self.opacity.value() / 100
+                if self._shell_opacity != opacity:
+                    self.mesh.setMeshData(vertexes=self.vertices, faces=self.faces)
+                    self.mesh.setColor((.68, .73, .8, opacity))
+                    self._shell_opacity = opacity
                 particle_colors = activity_colors(values[self.particle_indices], self.limit)
                 self.particles.setData(color=particle_colors)
                 line_colors = np.repeat(particle_colors, 2, axis=0)
                 line_colors[:, 3] *= .35
                 self.fibers.setData(color=line_colors)
+            self.mesh.setVisible(not glowing or self.shell.isChecked())
             self.legend.setText(
                 ("Cyan = positif · ungu = negatif · terang = |potensial|; partikel ilustratif"
                  if glowing else "Biru = negatif · merah = positif")
                 + f" · skala tetap ±{self.limit:.2f} µV · bukan kelas AATR"
             )
-            self.mesh.opts["meshdata"].setVertexColors(colors)
-            self.mesh.meshDataChanged()
+            if not glowing:
+                colors = colormaps["RdBu_r"](
+                    np.clip((values / self.limit + 1) / 2, 0, 1)
+                ).astype(np.float32)
+                self.mesh.opts["meshdata"].setVertexColors(colors)
+                self.mesh.meshDataChanged()
+                self._shell_opacity = None
             self.view.update()
 
     def seek(self, sample):

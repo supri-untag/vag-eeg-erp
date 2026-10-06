@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLineEdit,
     QTableWidgetItem,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -25,19 +24,7 @@ class ScoringPage(QWidget):
         super().__init__()
         self.result = None
         self.output = None
-        root = QVBoxLayout(self)
-        from vard_eeg_erp.aatr_dashboard_ui import AATRDashboard
-        from vard_eeg_erp.aatr_ui import AATRPanel
-
-        self.aatr = AATRPanel()
-        tabs = QTabWidget()
-        root.addWidget(tabs)
-        worksheet = QWidget()
-        tabs.addTab(worksheet, "VARS")
-        tabs.addTab(self.aatr, "AATR V7B")
-        self.aatr_dashboard = AATRDashboard()
-        tabs.addTab(self.aatr_dashboard, "Dashboard AATR")
-        layout = QVBoxLayout(worksheet)
+        layout = QVBoxLayout(self)
         note = label(
             "VARS EKSPERIMENTAL · Fitur diisi manual sesuai protokol penelitian. "
             "Skor merupakan respons relatif, bukan persentase keindahan. "

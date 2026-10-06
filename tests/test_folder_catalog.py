@@ -21,9 +21,9 @@ def test_recursive_scan_keeps_bad_and_companion_files(tmp_path, recording):
     with patch('vard_eeg_erp.folder_catalog.read_recording', side_effect=read):
         rows = scan_folder(tmp_path)
     assert len(rows) == 5
-    assert sum(r['readable'] for r in rows) == 1
+    assert sum(r['readable'] for r in rows) == 2
     assert next(r for r in rows if r['name'].endswith('bad.edf'))['status'] == 'Gagal dibaca'
-    assert 'FDT senama tersedia' in next(r for r in rows if r['name'].endswith('.set'))['notes']
+    assert next(r for r in rows if r['name'].endswith('.set'))['readable']
     assert (child / 'analysis.m').read_text() == 'error("must never execute")'
 
 

@@ -176,17 +176,31 @@ def demo_recording() -> Recording:
 
 def read_recording(path: str | Path) -> Recording:
     path = Path(path).resolve()
-    readers = {".bdf": mne.io.read_raw_bdf, ".edf": mne.io.read_raw_edf}
+    if path.suffix.lower() == ".fdt":
+        companion = path.with_suffix(".set")
+        if not companion.is_file():
+            raise ValueError("FDT memerlukan file SET pendamping. Pilih SET yang merujuk FDT ini.")
+        path = companion
+    readers = {".bdf": mne.io.read_raw_bdf, ".edf": mne.io.read_raw_edf,
+               ".set": mne.io.read_raw_eeglab}
     if path.suffix.lower() not in readers:
-        raise ValueError("Versi awal mendukung file BDF dan EDF.")
+        raise ValueError("Format yang didukung: BDF, EDF, SET/FDT EEGLAB kontinu.")
     raw = readers[path.suffix.lower()](path, preload=False, verbose=False)
     if len(mne.pick_types(raw.info, stim=True)):
         events = mne.find_events(raw, shortest_event=1, verbose=False)
         event_id = {f"Trigger {code}": int(code) for code in np.unique(events[:, 2])}
     else:
-        events, event_id = mne.events_from_annotations(raw, verbose=False)
+        descriptions = set(raw.annotations.description)
+        numeric_ids = ({str(value): int(value) for value in descriptions}
+                       if descriptions and all(str(value).isdigit() and int(value) > 0
+                                               for value in descriptions) else None)
+        events, event_id = mne.events_from_annotations(raw, event_id=numeric_ids, verbose=False)
     if len(events) == 0 and len(raw.annotations):
-        events, event_id = mne.events_from_annotations(raw, verbose=False)
+        descriptions = set(raw.annotations.description)
+        numeric_ids = ({str(value): int(value) for value in descriptions}
+                       if descriptions and all(str(value).isdigit() and int(value) > 0
+                                               for value in descriptions) else None)
+        events, event_id = mne.events_from_annotations(raw, event_id=numeric_ids, verbose=False)
     return prepare_preview(Recording(raw, events, event_id, str(path)))
 
 

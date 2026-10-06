@@ -19,7 +19,7 @@ def scan_folder(folder):
                'status': 'Pendukung', 'channels': '', 'sfreq': '', 'duration': '',
                'events': '', 'notes': '', 'readable': False}
         suffix = path.suffix.lower()
-        if suffix in ('.bdf', '.edf'):
+        if suffix in ('.bdf', '.edf', '.set'):
             recording = None
             try:
                 recording = read_recording(path)
@@ -47,10 +47,6 @@ def scan_folder(folder):
             finally:
                 if recording is not None:
                     recording.raw.close()
-        elif suffix == '.set':
-            row['notes'] = ('EEGLAB belum didukung pembaca aplikasi; FDT senama ' +
-                            ('tersedia' if path.with_suffix('.fdt').exists() else
-                             'tidak ditemukan (SET bisa menyimpan data internal)'))
         elif suffix == '.fdt':
             row['notes'] = 'Data pendamping SET; bukan rekaman mandiri'
         elif suffix == '.m':

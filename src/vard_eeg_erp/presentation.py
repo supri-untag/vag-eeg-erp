@@ -97,7 +97,7 @@ class Presentation(QWidget):
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.valueChanged.connect(self.seek)
         layout.addWidget(self.slider)
-        self.progress = label("0,00 / 0,00 detik", "muted")
+        self.progress = label("Waktu presentasi: 0 / 0 ms", "muted")
         layout.addWidget(self.progress)
         note = label(
             "Mean amplitude per window (µV) · warna simetris dan tetap antar-event.\n"
@@ -119,7 +119,7 @@ class Presentation(QWidget):
         self.values = []
         self.elapsed = 0.0
         self.slider.setValue(0)
-        self.progress.setText("0,00 / 0,00 detik")
+        self.progress.setText("Waktu presentasi: 0 / 0 ms")
         self.prepare_timer.stop()
         self.cache = []
         self.figure.clear()
@@ -277,7 +277,7 @@ class Presentation(QWidget):
         self.slider.blockSignals(True)
         self.slider.setValue(round(self.elapsed * 1000))
         self.slider.blockSignals(False)
-        self.progress.setText(f"{self.elapsed:.2f} / {len(self.results) * 1.5:.2f} detik · event {index + 1}/{len(self.results)}")
+        self.progress.setText(f"Waktu presentasi: {self.elapsed * 1000:.0f} / {len(self.results) * 1500:.0f} ms · event {index + 1}/{len(self.results)}")
         if index + 1 < len(self.cache):
             fraction = float(np.clip(((self.elapsed / 1.5 - index) - 0.65) / 0.35, 0, 1))
             self.canvas.second = self.cache[index + 1] if fraction > 0 else None

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHeaderView,
     QLabel,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QVBoxLayout,
@@ -205,8 +206,9 @@ class Topomap(FigureCanvasQTAgg):
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, settings: Settings, parent=None):
+    def __init__(self, settings: Settings, parent=None, sfreq=200):
         super().__init__(parent)
+        self.sfreq = sfreq
         self.setWindowTitle("Parameter analisis")
         self.setMinimumWidth(460)
         layout = QVBoxLayout(self)
@@ -220,8 +222,8 @@ class SettingsDialog(QDialog):
         layout.addLayout(form)
         self.fields = {}
         definitions = [
-            ("highpass", "High-pass (Hz; 0 = off)", 0, 1000, 1),
-            ("lowpass", "Low-pass (Hz)", 0.1, 10000, 1),
+            ("highpass", "Batas bawah / high-pass (Hz; 0 = off)", 0, 10, 1),
+            ("lowpass", "Batas atas / low-pass (Hz)", 0.1, min(50, sfreq / 2 - .01), 1),
             ("tmin", "Awal epoch (ms)", -10000, 10000, 1000),
             ("tmax", "Akhir epoch (ms)", -10000, 10000, 1000),
             ("baseline_start", "Awal baseline (ms)", -10000, 10000, 1000),
@@ -254,9 +256,17 @@ class SettingsDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.accepted.connect(self.accept)
+        buttons.accepted.connect(self.validate_and_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def validate_and_accept(self):
+        try:
+            self.settings().validate(self.sfreq)
+        except ValueError as error:
+            QMessageBox.warning(self, "Parameter belum valid", str(error))
+            return
+        self.accept()
 
     def settings(self) -> Settings:
         values = self.original.copy()

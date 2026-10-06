@@ -327,3 +327,29 @@ Mapping waktu tidak diubah. Marker PROVISIONAL tetap memerlukan verifikasi onset
 Setelah pemetaan, Generate ERP kembali lalu simpan project. Koordinat, channel
 yang dikeluarkan, dan pemetaan kategori tersimpan dalam manifest project. BDF
 asli tidak diubah; file BDF tetap diperlukan untuk membuka ulang project.
+
+## SET/FDT, filter, dan menu AATR Analysis
+
+**Import EEG** menerima SET EEGLAB kontinu. Simpan FDT yang dirujuk SET di folder
+yang sama. Jika memilih FDT langsung, aplikasi mencari SET senama; bila namanya
+berbeda, pilih SET. SET berisi channel/event dan metadata, FDT berisi sampel;
+FDT saja tidak cukup. Scan folder kini memeriksa SET sebagai rekaman. SET epoched
+belum didukung. Kode annotation numerik positif dipertahankan sebagai kode event.
+
+High-pass adalah **batas bawah (0–10 Hz; 0 = off)**. Low-pass adalah **batas atas
+(maksimal 50 Hz dan tetap di bawah setengah sampling rate)**. Batas bawah harus
+lebih kecil dari batas atas. Baseline harus berada dalam epoch. Dialog tetap
+terbuka bila parameter belum valid, sehingga dapat diperbaiki sebelum Generate.
+Input waktu pada dialog menggunakan ms, bukan detik.
+
+Menu **AATR Analysis** kini terpisah dari VARS. Tab **Data rekaman** mengambil
+ERP yang terakhir dihitung di Overview dari BDF/EDF/SET. Pilih channel untuk
+melihat kurva dan mean, signed absolute peak, serta latency pada Early/P300/LPP.
+Window di luar epoch ditandai, tidak diisi nilai palsu. Kelas AATR tetap menunggu
+definisi normalisasi Z/ROI. Tab level MAT dan dashboard FIG adalah hasil acuan
+impor yang terpisah dari rekaman aktif. Saat event/parameter berubah, hasil aktif
+dikosongkan sampai Generate ERP dijalankan kembali.
+
+SET yang sudah difilter/re-reference akan diproses lagi sesuai parameter aplikasi;
+periksa riwayat preprocessing sumber sebelum menafsirkan hasil. Dukungan format
+bukan verifikasi bahwa preprocessing ganda sesuai protokol penelitian.

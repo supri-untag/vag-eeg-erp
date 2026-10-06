@@ -116,6 +116,7 @@ class MainWindow(QMainWindow):
                 "▶   ERP presentation",
                 "◉   Brain 3D",
                 "▦   VARS Scoring",
+                "▧   AATR Analysis",
             ]
         ):
             nav = button(name)
@@ -234,6 +235,10 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.brain)
         self.scoring = ScoringPage()
         self.stack.addWidget(self.scoring)
+        from vard_eeg_erp.aatr_workspace import AATRWorkspace
+
+        self.aatr = AATRWorkspace(self.import_file)
+        self.stack.addWidget(self.aatr)
         self.progress = QProgressBar()
         self.progress.setRange(0, 0)
         self.progress.hide()
@@ -292,7 +297,7 @@ class MainWindow(QMainWindow):
 
         timeline_card, timeline_layout = card()
         timeline_row = QHBoxLayout()
-        timeline_row.addWidget(label("LINKED TIMELINE", "muted"))
+        timeline_row.addWidget(label("LINKED TIMELINE (ms)", "muted"))
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.valueChanged.connect(self._sample_changed)
         timeline_row.addWidget(self.slider, 1)
@@ -382,6 +387,7 @@ class MainWindow(QMainWindow):
                 "ERP presentation",
                 "Brain 3D",
                 "VARS Scoring",
+                "AATR Analysis",
             ][index]
         )
         for i, nav in enumerate(self.nav_buttons):
@@ -524,7 +530,7 @@ class MainWindow(QMainWindow):
     def import_file(self):
         if not self.confirm_replace():
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Import rekaman EEG", "", "EEG (*.bdf *.edf)")
+        path, _ = QFileDialog.getOpenFileName(self, "Import rekaman EEG", "", "EEG (*.bdf *.edf *.set *.fdt)")
         if path:
             self.start_job(
                 lambda: read_recording(path),
@@ -639,6 +645,7 @@ class MainWindow(QMainWindow):
 
     def invalidate_result(self):
         self.scoring.set_result(None)
+        self.aatr.set_result(None)
         self.brain.clear()
         self.presentation.clear()
         self.result = None
@@ -660,7 +667,8 @@ class MainWindow(QMainWindow):
     def edit_settings(self):
         if self.job is not None:
             return
-        dialog = SettingsDialog(self.settings, self)
+        dialog = SettingsDialog(self.settings, self,
+                                sfreq=self.recording.raw.info["sfreq"] if self.recording else 200)
         if dialog.exec():
             settings = dialog.settings()
             try:
@@ -755,6 +763,7 @@ class MainWindow(QMainWindow):
 
     def install_result(self, result):
         self.scoring.set_result(result)
+        self.aatr.set_result(result)
         self.result = result
         self.presentation.set_results([result])
         self.brain.set_result(result)
